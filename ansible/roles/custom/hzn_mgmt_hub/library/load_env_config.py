@@ -106,7 +106,17 @@ class ConfPath(object):
         self.field_type = ConfFieldType.get_field_type(tokens)
         self.key = "_".join(tokens)
 
+"""
+Object for manipulating the OpenHorizon Management Hub configuration variables.
+It can produce a structured configuration from environment variables,
+and turn a structured configuration back into environment variables, providing
+some compatibility between the Ansible way of storing configuration and
+the existing method for configuring OpenHorizon via the all-in-one script.
 
+It uses some established, de facto patterns about the naming convention for
+creating a structured document out of the environment variables. Most importantly, the fact that
+environment variables are preceded with the name of the component they are related to.
+"""
 class ConfigLoader(object):
     COMPONENTS: List[str] = [
         "agbot",
@@ -128,6 +138,22 @@ class ConfigLoader(object):
     arch: str
     changed: bool
 
+    """
+    Get a configuration value located at a path.
+    Returns None if the value could not be found.
+    """
+    def get(self, path: ConfPath) -> Optional[Any]:
+        sec = self.config.get(path.component) if path.component else self.config
+
+        if type(sec) == dict \
+            and (val := sec[path.field_type].get(path.key)):
+            return val
+        else:
+            return None
+
+    """
+    Insert a value into the configuration.
+    """
     def insert(self, path: ConfPath, value: Any):
         idict = self.config
 
@@ -204,8 +230,17 @@ class ConfigLoader(object):
 
         return lines
 
-    def into_env(self) -> str:
-        lines: List[str] = []
+    """
+    Make the administrator's environment using the entire configuration.
+    Returns the contents of a generated environment file.
+    """
+    def make_administrator_environment(self) -> str:
+        lines: List[str] = [
+            "# Administrator's environment file used to run deploy-mgmt-hub.sh",
+            "# Usage: source <this-file>",
+            "# MANAGED BY ANSIBLE! DO NOT EDIT! Edits applied to this file will not be persistent.",
+            "",
+        ]
 
         for key, value in self.config.items():
             if not type(value) is dict:
@@ -215,6 +250,36 @@ class ConfigLoader(object):
                 lines.extend(self.component_into_env(key, value))
             else:
                 lines.extend(self.settings_into_env(None, value))
+
+        return "\n".join(lines)
+    
+    """
+    Make the agent-install.cfg using only a subset of the configuration.
+    Returns the contents of a generated environment file.
+    """
+    def make_agent_install(self) -> str:
+        lines: List[str] = [
+            "# agent-install.cfg",
+            "# MANAGED BY ANSIBLE! DO NOT EDIT! Edits applied to this file will not be persistent.",
+            "",
+        ]
+
+        # These environment variable names will be included in the agent-install.cfg only if they are present in the config.
+        AGENT_INSTALL_KEYS = [
+            "HZN_ORG_ID",
+            "HZN_EXCHANGE_URL",
+            "HZN_FSS_CSSURL",
+            "HZN_AGBOT_URL",
+            "HZN_FDO_SVC_URL",
+        ]
+
+        # Include only needed keys in agent-install.cfg
+        def cond_append(ekey: str):        
+            if org_id := self.get(ConfPath(ekey)):
+                lines.append(f"HZN_ORG_ID={org_id}")
+        
+        for key in AGENT_INSTALL_KEYS:
+            cond_append(key)
 
         return "\n".join(lines)
 
@@ -240,13 +305,18 @@ def run_module():
     if env_file and os.path.isfile(env_file):
         loader.insert_environment_keys(env_file)
 
-    env_str = loader.into_env()
+    # This environment is used to run the installer.
+    env_str = loader.make_administrator_environment()
+
+    # This environment is the agent-install.cfg, safe for distribution.
+    agent_install = loader.make_agent_install()
 
     module.exit_json(
         **{
             "changed": loader.changed,
             "hzn_mgmt_hub": loader.config,
-            "env_script": env_str,
+            "administrator_env": env_str,
+            "agent_install": agent_install,
         }
     )
 
