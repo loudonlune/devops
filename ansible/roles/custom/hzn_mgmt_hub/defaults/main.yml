@@ -17,6 +17,9 @@ uninstall: false
 # If true, installs the management hub.
 install: false
 
+# If true, upgrades the management hub.
+upgrade: false
+
 # This is an additional place to define the configuration for the management hub.
 # If fields are not given, then the playbook will generate defaults.
 # For now, that is handled by the deploy-mgmt-hub script.
