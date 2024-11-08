@@ -28,15 +28,8 @@ MODULE_ARGUMENTS = {
     # The management hub config.
     "mgmt_hub": {"type": dict, "required": True},
     "env_file": {"type": str, "required": False},
+    "agent_install": {"type": str, "required": False},
 }
-
-
-def key_to_env(key: str, prefix: Optional[str]) -> str:
-    if prefix:
-        return f"{prefix.upper()}_{key.upper()}"
-    else:
-        return key.upper()
-
 
 @unique
 class ConfFieldType(Enum):
@@ -146,7 +139,8 @@ class ConfigLoader(object):
         sec = self.config.get(path.component) if path.component else self.config
 
         if type(sec) == dict \
-            and (val := sec[path.field_type].get(path.key)):
+            and (cmp := sec.get(path.field_type.value)) \
+            and (val := cmp.get(path.key)):
             return val
         else:
             return None
@@ -216,7 +210,7 @@ class ConfigLoader(object):
 
         return list(
             map(
-                lambda i: f'{prefix}{i[0].upper()}="{i[1]}"',
+                lambda i: f"{prefix}{i[0].upper()}='{i[1]}'",
                 filter(lambda i: not i[1] is None, settings.items()),
             )
         )
@@ -251,6 +245,8 @@ class ConfigLoader(object):
             else:
                 lines.extend(self.settings_into_env(None, value))
 
+        lines.append("") # Add newline at end of file
+
         return "\n".join(lines)
     
     """
@@ -266,6 +262,8 @@ class ConfigLoader(object):
 
         # These environment variable names will be included in the agent-install.cfg only if they are present in the config.
         AGENT_INSTALL_KEYS = [
+            "HZN_LISTEN_IP",
+            "HZN_LISTEN_PUBLIC_IP",
             "HZN_ORG_ID",
             "HZN_EXCHANGE_URL",
             "HZN_FSS_CSSURL",
@@ -276,10 +274,12 @@ class ConfigLoader(object):
         # Include only needed keys in agent-install.cfg
         def cond_append(ekey: str):        
             if org_id := self.get(ConfPath(ekey)):
-                lines.append(f"HZN_ORG_ID={org_id}")
+                lines.append(f"{ekey}='{org_id}'")
         
         for key in AGENT_INSTALL_KEYS:
             cond_append(key)
+
+        lines.append("") # Add newline at end of file
 
         return "\n".join(lines)
 
@@ -290,6 +290,7 @@ def run_module():
     config: Dict = module.params["mgmt_hub"]
     facts: Dict = module.params["ansible_facts"]
     env_file: Optional[str] = module.params.get("env_file")
+    agent_install: Optional[str] = module.params.get("agent_install")
 
     if "architecture" not in facts:
         module.fail_json("System arch not in facts.")
@@ -300,10 +301,14 @@ def run_module():
     if val_msgs:
         module.fail_json("Configuration validation failed", validation_errors=val_msgs)
 
-    # If the env_file is present,
-    #   load it into the environment and update the config.
+    # Load the environment file.
     if env_file and os.path.isfile(env_file):
         loader.insert_environment_keys(env_file)
+
+    # Load the agent-install (another source of environment variables).
+    # The provided agent-install takes highest precedence.
+    if agent_install and os.path.isfile(agent_install):
+        loader.insert_environment_keys(agent_install)
 
     # This environment is used to run the installer.
     env_str = loader.make_administrator_environment()
