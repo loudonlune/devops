@@ -198,7 +198,7 @@ export EXCHANGE_DATABASE=${EXCHANGE_DATABASE:-exchange}   # the db the exchange 
 export AGBOT_DATABASE=${AGBOT_DATABASE:-exchange}   #todo: figure out how to get 2 different databases created in postgres. The db the agbot uses in the postgres instance
 
 export MONGO_IMAGE_NAME=${MONGO_IMAGE_NAME:-mongo}
-export MONGO_IMAGE_TAG=${MONGO_IMAGE_TAG:-4.0.6}   # or can be set to stable or a specific version
+export MONGO_IMAGE_TAG=${MONGO_IMAGE_TAG:-6.0}   # or can be set to stable or a specific version
 export MONGO_PORT=${MONGO_PORT:-27017}
 
 # FDO Owner [Companion] Service
@@ -253,7 +253,7 @@ export COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-hzn}
 
 export HC_DOCKER_TAG=${HC_DOCKER_TAG:-latest}   # when using the anax-in-container agent
 
-OH_DEVOPS_REPO=${OH_DEVOPS_REPO:-https://raw.githubusercontent.com/open-horizon/devops/master}
+OH_DEVOPS_REPO=${OH_DEVOPS_REPO:-https://raw.githubusercontent.com/open-horizon/devops/new-mongodb}
 OH_ANAX_RELEASES=${OH_ANAX_RELEASES:-https://github.com/open-horizon/anax/releases/latest/download}
 OH_ANAX_MAC_PKG_TAR=${OH_ANAX_MAC_PKG_TAR:-horizon-agent-macos-pkg-x86_64.tar.gz}
 OH_ANAX_DEB_PKG_TAR=${OH_ANAX_DEB_PKG_TAR:-horizon-agent-linux-deb-${ARCH_DEB}.tar.gz}
