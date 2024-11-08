@@ -1,8 +1,4 @@
 ---
-
-- name: AIO script setup
-  import_tasks: aio_script_setup.yml
-
   # The next two steps are mutually exclusive.
 
   # Installs the management hub (if fails, shuts down the hub)
@@ -24,7 +20,9 @@
   - name: Execute installer script
     ansible.builtin.shell:
       executable: /bin/bash 
-      cmd: "source deploy-mgmt-hub.sh -c agent-install.cfg && env > {{ secrets_workdir.path }}/postinstall_env"
+      cmd: |-
+        source administrator.env
+        source deploy-mgmt-hub.sh -c agent-install.cfg && env > {{ secrets_workdir.path }}/postinstall_env
 
     # Get the current configuration of the system, and place it into the install_config var
   - name: Generate final config output
@@ -42,7 +40,11 @@
   # If the installation fails above, shut down the containers.
   rescue:
   - name: Stop containers
-    ansible.builtin.script: deploy-mgmt-hub.sh -c agent-install.cfg -S
+    ansible.builtin.shell: 
+      executable: /bin/bash 
+      cmd: |-
+        source administrator.env
+        source deploy-mgmt-hub.sh -c agent-install.cfg -S
   - name: Force failure
     ansible.builtin.fail:
      msg: "Failed to install or start the management hub containers."
@@ -50,7 +52,11 @@
 
   # Uninstalls the management hub
 - name: Uninstallation of the management hub
-  ansible.builtin.script: deploy-mgmt-hub.sh -c agent-install.cfg -S -P
+  ansible.builtin.shell: 
+    executable: /bin/bash 
+    cmd: |-
+      source administrator.env
+      source deploy-mgmt-hub.sh -c agent-install.cfg -S -P
   when: uninstall
 
   # Optionally export variables
@@ -61,8 +67,4 @@
     ansible.builtin.copy:
       content: '{{ install_config.hzn_mgmt_hub | to_nice_yaml }}'
       dest: "{{ ansible_env.HOME }}/mgmt_hub_configuration.yml"
-  # - name: Link to ansible facts dir
-  #   ansible.builtin.file:
-  #     src: "{{ ansible_env.HOME }}/mgmt_hub_configuration.yml"
-  #     path: /etc/ansible/facts.d/mgmt_hub.yml
-  #     state: link
+      mode: "0600"

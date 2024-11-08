@@ -13,13 +13,21 @@
     name: python-dotenv
 
 # Copy the environment file to the remote system (if it exists).
-- name: Copy environment to destination
+- name: Copy agent install to destination
   ansible.builtin.copy:
     decrypt: true
     mode: '0644'
     src: '{{ agent_install }}'
     dest: '{{ agent_install }}'
   when: agent_install is defined and agent_install != None
+
+- name: Copy administrator environment to destination
+  ansible.builtin.copy:
+    decrypt: true
+    mode: '0600'
+    src: '{{ administrator_env }}'
+    dest: '{{ administrator_env }}'
+  when: administrator_env is defined and administrator_env != None
 
 - name: Copy management hub script to destination
   ansible.builtin.copy:
@@ -31,7 +39,8 @@
   load_env_config:
     ansible_facts: "{{ ansible_facts }}"
     mgmt_hub: '{{ hzn_mgmt_hub }}'
-    env_file: '{{ agent_install }}'
+    env_file: '{{ administrator_env }}'
+    agent_install: '{{ agent_install }}'
   register: install_config
 
 # Write the agent-install.cfg file to disk.
