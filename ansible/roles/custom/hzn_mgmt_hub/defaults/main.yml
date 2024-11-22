@@ -80,9 +80,5 @@ hzn_mgmt_hub:
     net:  {}
 
   agbot2: {}
-<<<<<<< HEAD
   oh:
     config: {}
-=======
-  oh: {}
->>>>>>> 6eeceaa (Security fixes, always include env vars when running AIO script)
