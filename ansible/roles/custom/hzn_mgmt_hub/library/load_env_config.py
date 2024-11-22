@@ -201,7 +201,7 @@ class ConfigLoader(object):
         self.changed = False
 
     def settings_into_env(
-        self, name: Optional[str], settings: Dict[str, Any]
+        self, name: Optional[str], settings: Dict[str, Any], export: bool = False
     ) -> List[str]:
         if name:
             prefix = f"{name.upper()}_"
@@ -210,17 +210,17 @@ class ConfigLoader(object):
 
         return list(
             map(
-                lambda i: f"{prefix}{i[0].upper()}='{i[1]}'",
+                lambda i: f"export {prefix}{i[0].upper()}='{i[1]}'" if export else f"{prefix}{i[0].upper()}='{i[1]}'",
                 filter(lambda i: not i[1] is None, settings.items()),
             )
         )
 
-    def component_into_env(self, name: str, config: Dict) -> List[str]:
+    def component_into_env(self, name: str, config: Dict, export: bool = False) -> List[str]:
         lines: List[str] = []
 
         for value in config.values():
             if type(value) is dict:
-                lines.extend(self.settings_into_env(name, value))
+                lines.extend(self.settings_into_env(name, value, export))
 
         return lines
 
@@ -241,9 +241,9 @@ class ConfigLoader(object):
                 continue
 
             if key in self.COMPONENTS:
-                lines.extend(self.component_into_env(key, value))
+                lines.extend(self.component_into_env(key, value, True))
             else:
-                lines.extend(self.settings_into_env(None, value))
+                lines.extend(self.settings_into_env(None, value, True))
 
         lines.append("") # Add newline at end of file
 
