@@ -31,6 +31,7 @@
 
 - name: Copy management hub script to destination
   ansible.builtin.copy:
+    mode: '0755'
     src: deploy-mgmt-hub.sh
     dest: deploy-mgmt-hub.sh
 
