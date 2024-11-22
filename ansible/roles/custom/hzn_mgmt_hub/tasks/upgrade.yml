@@ -1,0 +1,12 @@
+
+- name: AIO script setup
+  import_tasks: aio_script_setup.yml
+
+- name: Stop containers
+  ansible.builtin.script: deploy-mgmt-hub.sh -c agent-install.cfg -S
+
+- name: Upgrade stopped containers
+  ansible.builtin.script: deploy-mgmt-hub.sh -c agent-install.cfg -u
+
+- name: Start containers
+  ansible.builtin.script: deploy-mgmt-hub.sh -c agent-install.cfg -s

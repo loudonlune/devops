@@ -1,5 +1,5 @@
 ---
-# tasks file for hzn-mgmt-hub
+# Generates an agent-install.cfg file for operations.
 
 - name: Ensure pip is installed
   ansible.builtin.apt:
@@ -12,6 +12,11 @@
     state: present
     name: python-dotenv
 
+- name: Copy script from local
+  ansible.builtin.copy:
+    src: deploy-mgmt-hub.sh
+    dest: deploy-mgmt-hub.sh
+
 # Copy the environment file to the remote system (if it exists).
 - name: Copy environment to destination
   ansible.builtin.copy:
@@ -20,11 +25,6 @@
     src: '{{ agent_install }}'
     dest: '{{ agent_install }}'
   when: agent_install is defined and agent_install != None
-
-- name: Copy management hub script to destination
-  ansible.builtin.copy:
-    src: deploy-mgmt-hub.sh
-    dest: deploy-mgmt-hub.sh
 
 # Generate an agent-install.cfg file from environment and YAML variables.
 - name: Generate environment for install
@@ -35,26 +35,8 @@
   register: install_config
 
 # Write the agent-install.cfg file to disk.
-- name: Write agent-install.cfg to disk.
+- name: Write finalized environment file to disk.
   ansible.builtin.copy:
     mode: '0644'
-    content: "{{ install_config.agent_install }}"
+    content: "{{ install_config.env_script }}"
     dest: agent-install.cfg
-
-- name: Write administrator.env to disk.
-  ansible.builtin.copy:
-    mode: '0600'
-    content: "{{ install_config.administrator_env }}"
-    dest: administrator.env
-
-- name: Install or uninstall the management hub
-  import_tasks: install.yml
-  when: install or uninstall
-
-- name: Upgrade the management hub
-  import_tasks: upgrade.yml
-  when: upgrade
-
-# - name: Run user and group management
-#   import_tasks: user_mgmt.yml
-#   when: not uninstall and exchange_config is defined

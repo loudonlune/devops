@@ -1,4 +1,8 @@
 ---
+
+- name: AIO script setup
+  import_tasks: aio_script_setup.yml
+
   # The next two steps are mutually exclusive.
 
   # Installs the management hub (if fails, shuts down the hub)
@@ -11,10 +15,10 @@
       suffix: secrets
     register: secrets_workdir
 
-  - name: Copy script from local
-    ansible.builtin.copy:
-      src: deploy-mgmt-hub.sh
-      dest: deploy-mgmt-hub.sh
+  # - name: Copy script from local
+  #   ansible.builtin.copy:
+  #     src: deploy-mgmt-hub.sh
+  #     dest: deploy-mgmt-hub.sh
 
     # Execute the installer script in the current shell session, then yak up the environment and store in a file
   - name: Execute installer script
