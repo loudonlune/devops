@@ -39,7 +39,7 @@
 - name: Generate environment for install
   load_env_config:
     ansible_facts: "{{ ansible_facts }}"
-    mgmt_hub: '{{ hzn_mgmt_hub }}'
+    mgmt_hub: '{{ hzn_mgmt_hub | default({}) }}'
     env_file: '{{ administrator_env }}'
     agent_install: '{{ agent_install }}'
   register: install_config
@@ -61,19 +61,23 @@
   import_tasks: install.yml
   when: install or uninstall
 
-# Load the facts from the active installation. We need this information to control users and orgs.
-# It should be coming from an ansible vault, however we can try to load it from the remote system.
-- name: Try to load installation facts
-  ansible.builtin.include_vars:
-    remote_src: true
-    file: mgmt_hub_configuration.yml
-    name: hzn_mgmt_hub
-  when: not uninstall and not install and hzn_mgmt_hub is undefined
-
 - name: Move config
   ansible.builtin.set_fact:
     hzn_mgmt_hub: '{{ install_config.hzn_mgmt_hub }}'
   when: install
+
+# Load the facts from the active installation. We need this information to control users and orgs.
+# It should be coming from an ansible vault, however we can try to load it from the remote system.
+- name: Try to load installation facts
+  block:
+  - name: Slurp from remote
+    ansible.builtin.slurp:
+      src: 'mgmt_hub_configuration.yml'
+    register: hzn_mgmt_hub_slurped
+  - name: Set fact
+    ansible.builtin.set_fact:
+      hzn_mgmt_hub: '{{ hzn_mgmt_hub_slurped.content | b64decode | from_yaml }}'
+  when: not uninstall and hzn_mgmt_hub is undefined
 
 - name: Upgrade the management hub
   import_tasks: upgrade.yml
