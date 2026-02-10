@@ -38,16 +38,16 @@
       path: '{{ secrets_workdir.path }}'
       state: absent
   # If the installation fails above, shut down the containers.
-  rescue:
-  - name: Stop containers
-    ansible.builtin.shell: 
-      executable: /bin/bash 
-      cmd: |-
-        source administrator.env
-        source deploy-mgmt-hub.sh -c agent-install.cfg -S
-  - name: Force failure
-    ansible.builtin.fail:
-     msg: "Failed to install or start the management hub containers."
+  #  rescue:
+  #- name: Stop containers
+  #  ansible.builtin.shell: 
+  #    executable: /bin/bash 
+  #    cmd: |-
+  #      source administrator.env
+  #      source deploy-mgmt-hub.sh -c agent-install.cfg -S
+  #- name: Force failure
+  #  ansible.builtin.fail:
+  #   msg: "Failed to install or start the management hub containers."
   when: not uninstall
 
   # Uninstalls the management hub

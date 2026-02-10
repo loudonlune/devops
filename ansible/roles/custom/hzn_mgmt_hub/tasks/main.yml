@@ -35,8 +35,23 @@
     src: deploy-mgmt-hub.sh
     dest: deploy-mgmt-hub.sh
 
+# Load the facts from the active installation. We need this information to control users and orgs.
+# It should be coming from an ansible vault, however we can try to load it from the remote system.
+- name: Try to load installation facts
+  block:
+  - name: Slurp from remote
+    ansible.builtin.slurp:
+      src: 'mgmt_hub_configuration.yml'
+    register: hzn_mgmt_hub_slurped
+    ignore_errors: true
+  - name: Set fact
+    ansible.builtin.set_fact:
+      hzn_mgmt_hub: '{{ hzn_mgmt_hub_slurped.content | b64decode | from_yaml }}'
+    ignore_errors: true
+  when: not install and not uninstall and hzn_mgmt_hub is undefined
+
 # Generate an agent-install.cfg file from environment and YAML variables.
-- name: Generate environment for install
+- name: Generate environment for install (initial)
   load_env_config:
     ansible_facts: "{{ ansible_facts }}"
     mgmt_hub: '{{ hzn_mgmt_hub | default({}) }}'
@@ -76,18 +91,9 @@
     hzn_mgmt_hub: '{{ pre_install_config.hzn_mgmt_hub }}'
   when: not install and hzn_mgmt_hub is undefined and not mgmt_hub_stat_result.stat.exists
 
-# Load the facts from the active installation. We need this information to control users and orgs.
-# It should be coming from an ansible vault, however we can try to load it from the remote system.
-- name: Try to load installation facts
-  block:
-  - name: Slurp from remote
-    ansible.builtin.slurp:
-      src: 'mgmt_hub_configuration.yml'
-    register: hzn_mgmt_hub_slurped
-  - name: Set fact
-    ansible.builtin.set_fact:
-      hzn_mgmt_hub: '{{ hzn_mgmt_hub_slurped.content | b64decode | from_yaml }}'
-  when: not uninstall and hzn_mgmt_hub is undefined
+- name: Restart the management hub
+  import_tasks: restart.yml
+  when: restart
 
 - name: Upgrade the management hub
   import_tasks: upgrade.yml
@@ -95,4 +101,4 @@
 
 - name: Run user and group management
   import_tasks: user_mgmt.yml
-  when: not uninstall and exchange_config is defined
+  when: exchange_config is defined and install or exchange_config is defined and sync
