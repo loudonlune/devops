@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [] - 2025-10-22
+- Moved requests to assign an Agreement Bot to manage example deployments to after the deployment publishing.
+
+## [] - 2025-09-17
+- Compose alias is saved to bash_aliases to survive reboot.
+
 ## [] - 2025-09-08
 - Reversed non-backwards compatible changes to compose file.
 - Rewrote Ubuntu installation sections.
